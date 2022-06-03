@@ -1,6 +1,9 @@
 package org.acme.application.service;
 
-import org.acme.application.Publisher;
+import io.smallrye.mutiny.Uni;
+import org.acme.application.command.UpdateStateCommand;
+import org.acme.domain.model.Gadget;
+import org.acme.infrastructure.repository.GadgetsRepository;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -10,11 +13,18 @@ import javax.ws.rs.core.Response;
 public class EventPublisherService {
 
     @Inject
-    Publisher publisher;
+    private GadgetsRepository gadgetsRepository;
 
-    public Response execute(){
-        publisher.publishMessage("From service");
-        return Response.ok().build();
+    @Inject
+    private Publisher publisher;
+
+    public Uni<Gadget> execute(UpdateStateCommand updateStateCommand){
+        return gadgetsRepository.findByDeviceIdAndName(updateStateCommand.getUuid(), updateStateCommand.getName())
+                .flatMap(gadget -> {
+                    gadget.setState(updateStateCommand.getState());
+                    publisher.publishMessage(updateStateCommand);
+                    return gadgetsRepository.update(gadget);
+                });
     }
 
 }

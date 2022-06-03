@@ -1,5 +1,6 @@
-package org.acme.application;
+package org.acme.application.service;
 
+import org.acme.application.command.UpdateStateCommand;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -11,27 +12,21 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class Publisher {
 
-    String topic        = "test";
     int qos             = 2;
-    String broker       = "tcp://localhost:1883";
-    String clientId     = "JavaSample";
+    String broker       = "tcp://192.168.1.11:1883";
+    String clientId     = "BackendJava";
 
-    public void publishMessage(String content){
+    public void publishMessage(UpdateStateCommand updateStateCommand){
     MemoryPersistence persistence = new MemoryPersistence();
         try {
         MqttClient sampleClient = new MqttClient(broker, clientId, persistence);
         MqttConnectOptions connOpts = new MqttConnectOptions();
         connOpts.setCleanSession(true);
-        System.out.println("Connecting to broker: " + broker);
         sampleClient.connect(connOpts);
-        System.out.println("Connected");
-        System.out.println("Publishing message");
-        MqttMessage message = new MqttMessage(content.getBytes());
+        MqttMessage message = new MqttMessage(updateStateCommand.getState().getBytes());
         message.setQos(qos);
-        sampleClient.publish(topic, message);
-        System.out.println("Message published");
+        sampleClient.publish(updateStateCommand.getUuid()+"/"+updateStateCommand.getName(), message);
         sampleClient.disconnect();
-        System.out.println("Disconnected");
     } catch(MqttException me) {
         System.out.println("reason "+me.getReasonCode());
         System.out.println("msg "+me.getMessage());
